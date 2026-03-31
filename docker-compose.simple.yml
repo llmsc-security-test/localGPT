@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  rag-api:
+    image: promtengineer--localgpt-rag-api
+    container_name: rag-api-simple
+    ports:
+      - "8081:8001"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - NODE_ENV=production
+    volumes:
+      - ./lancedb:/app/lancedb
+      - ./index_store:/app/index_store
+      - ./shared_uploads:/app/shared_uploads
+    restart: unless-stopped
+    network_mode: bridge
+
+  backend:
+    image: promtengineer--localgpt-backend
+    container_name: rag-backend-simple
+    ports:
+      - "8080:8000"
+    environment:
+      - NODE_ENV=production
+      - RAG_API_URL=http://host.docker.internal:8081
+      - OLLAMA_HOST=http://host.docker.internal:11434
+    volumes:
+      - ./backend:/app/backend
+      - ./shared_uploads:/app/shared_uploads
+    depends_on:
+      - rag-api
+    restart: unless-stopped
+    network_mode: bridge
+
+  frontend:
+    image: promtengineer--localgpt-frontend
+    container_name: localGPT-frontend-simple
+    ports:
+      - "11350:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+    restart: unless-stopped
+    network_mode: bridge
